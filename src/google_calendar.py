@@ -156,3 +156,23 @@ class GoogleCalendar:
             logger.error(f"An error occurred: {error}")
 
 
+if __name__ == "__main__":
+    # Create a Google Calendar object
+    google_calendar = GoogleCalendar()
+    # Create a event that lasts for one hour and the time zone is Europe/Berlin
+    event = GoogleCalendarEvent(
+        summary="Test Event",
+        location="Online",
+        description="This is a test event",
+        start=EventTime(datetime.now(), "Europe/Berlin"),
+        end=EventTime(datetime.now() + timedelta(hours=1), "Europe/Berlin"),
+        recurrence=["RRULE:FREQ=DAILY;COUNT=2"],
+        attendees=[EventAttendee("test@example.com")],
+        reminders=EventReminder(
+            useDefault=False, overrides=[EventReminderOverride("email", 10)]
+        ),
+    )
+
+    created_event = google_calendar.create_google_calendar_event(event)
+    time.sleep(5)
+    google_calendar.delete_google_calendar_event(created_event)
