@@ -19,6 +19,7 @@
                pkgs.python310Packages.python
                pkgs.python310Packages.venvShellHook
                pkgs.ffmpeg
+               pkgs.black
                # this is how we add native dependencies to the shell
                # e.g. grpc libstdc++.so.6
                stdenv.cc.cc.lib
