@@ -8,6 +8,12 @@ import json
 import logging
 import time
 
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
 logger = logging.getLogger("google_calendar")
 logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler("app-google-calendar.log")
@@ -88,5 +94,65 @@ class GoogleCalendarEvent:
             "attendees": [attendee.to_dict() for attendee in self.attendees],
             "reminders": self.reminders.to_dict(),
         }
+
+
+class GoogleCalendar:
+    def __init__(self):
+        SCOPES = ["https://www.googleapis.com/auth/calendar"]
+        if os.path.exists("token.pickle"):
+            with open("token.pickle", "rb") as token:
+                self.creds = pickle.load(token)
+        else:
+            self.creds = None
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "calendar-secrets.json", SCOPES
+                )
+                self.creds = flow.run_local_server(port=0)
+            with open("token.pickle", "wb") as token:
+                pickle.dump(self.creds, token)
+        self.flow = InstalledAppFlow.from_client_secrets_file(
+            "calendar-secrets.json", SCOPES
+        )
+        try:
+            self.service = build("calendar", "v3", credentials=self.creds)
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+
+    def create_google_calendar_event(self, event: GoogleCalendarEvent) -> str:
+        """
+        Create a google calendar event for the booking
+        :param booking_id: booking id
+        :param booking_data: booking data
+        :return: None
+        """
+        try:
+            event = (
+                self.service.events()
+                .insert(calendarId="primary", body=event.to_dict())
+                .execute()
+            )
+            logger.info(f'Event created: {event.get("htmlLink")}')
+            return event.get("id")
+        except HttpError as error:
+            logger.error(f"An error occurred: {error}")
+
+    def delete_google_calendar_event(self, event_id: str):
+        """
+        Delete a google calendar event for the booking
+        :param booking_id: booking id
+        :param booking_data: booking data
+        :return: None
+        """
+        try:
+            self.service.events().delete(
+                calendarId="primary", eventId=event_id
+            ).execute()
+            logger.info(f"Event deleted: {event_id}")
+        except HttpError as error:
+            logger.error(f"An error occurred: {error}")
 
 
