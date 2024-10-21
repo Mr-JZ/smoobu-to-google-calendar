@@ -1,19 +1,22 @@
-# A Dockerfile for a Python application that also make it possible to use sqlite3
-# The source file is in src/main.py and the requirements.txt is for the packages
-# that are needed to run the application
+FROM python:3.10
 
-FROM python:3.10-slim
+# Install sqlite3 and cron
+RUN apt-get update && apt-get install -y sqlite3 cron
 
-# Install sqlite3 and the packages that are needed to run the application
-RUN apt-get update && apt-get install -y sqlite3 && \
-    pip install --no-cache-dir -r requirements.txt
+# Set the working directory
+WORKDIR /app
 
-# Copy the source file and the requirements.txt to the container
+# Copy files to the container
+COPY crontab /etc/cron.d/mycron
 COPY src/ /app/src/
 COPY requirements.txt /app/
 
-# Set the working directory to /app
-WORKDIR /app
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r /app/requirements.txt
 
-# Run the application
-CMD ["python", "src/main.py"]
+# Adjust permissions and install cron job
+RUN chmod 0644 /etc/cron.d/mycron
+RUN crontab /etc/cron.d/mycron
+
+# Run cron in the foreground
+CMD ["cron", "-f"]
