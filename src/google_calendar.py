@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
 from typing import List
 import pickle
 import os
@@ -24,11 +25,13 @@ console_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
+load_dotenv()
+
 
 @dataclass
 class EventTime:
     dateTime: datetime
-    timeZone: str
+    timeZone: str = os.getenv("TIME_ZONE")
 
     def to_dict(self):
         # Localize the datetime to the specified time zone
@@ -79,11 +82,14 @@ class GoogleCalendarEvent:
     description: str
     start: EventTime
     end: EventTime
-    recurrence: List[str]
-    attendees: List[EventAttendee]
-    reminders: EventReminder
+    recurrence: List[str] = None
+    attendees: List[EventAttendee] = None
+    reminders: EventReminder = EventReminder(useDefault=True, overrides=[])
 
     def to_dict(self):
+        attendees = []
+        if self.attendees:
+            attendees = [attendee.to_dict() for attendee in self.attendees]
         return {
             "summary": self.summary,
             "location": self.location,
@@ -91,7 +97,7 @@ class GoogleCalendarEvent:
             "start": self.start.to_dict(),
             "end": self.end.to_dict(),
             "recurrence": self.recurrence,
-            "attendees": [attendee.to_dict() for attendee in self.attendees],
+            "attendees": attendees,
             "reminders": self.reminders.to_dict(),
         }
 
@@ -99,8 +105,8 @@ class GoogleCalendarEvent:
 class GoogleCalendar:
     def __init__(self):
         SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        if os.path.exists("token.pickle"):
-            with open("token.pickle", "rb") as token:
+        if os.path.exists("data/token.pickle"):
+            with open("data/token.pickle", "rb") as token:
                 self.creds = pickle.load(token)
         else:
             self.creds = None
@@ -109,13 +115,13 @@ class GoogleCalendar:
                 self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    "calendar-secrets.json", SCOPES
+                    "secrets/calendar-secrets.json", SCOPES
                 )
                 self.creds = flow.run_local_server(port=0)
             with open("token.pickle", "wb") as token:
                 pickle.dump(self.creds, token)
         self.flow = InstalledAppFlow.from_client_secrets_file(
-            "calendar-secrets.json", SCOPES
+            "secrets/calendar-secrets.json", SCOPES
         )
         try:
             self.service = build("calendar", "v3", credentials=self.creds)
@@ -130,12 +136,32 @@ class GoogleCalendar:
         :return: None
         """
         try:
+            logger.debug(f"Event: {event.to_dict()}")
             event = (
                 self.service.events()
                 .insert(calendarId="primary", body=event.to_dict())
                 .execute()
             )
             logger.info(f'Event created: {event.get("htmlLink")}')
+            return event.get("id")
+        except HttpError as error:
+            logger.error(f"An error occurred: {error}")
+
+    def update_google_calendar_event(self, event_id: str, event: GoogleCalendarEvent):
+        """
+        Update a google calendar event for the booking
+        :param booking_id: booking id
+        :param booking_data: booking data
+        :return: None
+        """
+        try:
+            logger.debug(f"Event: {event.to_dict()}")
+            event = (
+                self.service.events()
+                .update(calendarId="primary", eventId=event_id, body=event.to_dict())
+                .execute()
+            )
+            logger.info(f'Event updated: {event.get("htmlLink")}')
             return event.get("id")
         except HttpError as error:
             logger.error(f"An error occurred: {error}")
