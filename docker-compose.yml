@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .  # Build from the Dockerfile in the current directory
+    container_name: smoobu-calender-sync
+    volumes:
+      - ./calendar-secrets.json:/app/secrets/calendar-secrets.json
+      - smoobu-calender-data:/app/data
+    environment:
+      - SMOOBU_API=${SMOOBU_API}
+      - TIME_ZONE=${TIME_ZONE}
+    restart: unless-stopped  # Restart policy
+
+volumes:
+  smoobu-calender-data:
