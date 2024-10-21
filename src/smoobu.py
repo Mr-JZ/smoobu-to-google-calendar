@@ -139,25 +139,28 @@ class Smoobu:
             "https://login.smoobu.com/api/reservations",
             headers=self.headers,
         )
-        data = response.json()
-        booking_list = BookingList.from_json(data)
-        # make a function that goes through the pages and gets all the bookings
-        bookings = booking_list.bookings
-        for page in range(1, booking_list.page_count):
-            response = requests.get(
-                f"https://login.smoobu.com/api/reservations?page={page}",
-                headers=self.headers,
-            )
+        if response.status_code == 200:
             data = response.json()
             booking_list = BookingList.from_json(data)
-            bookings.extend(booking_list.bookings)
-            logger.debug(f"Page {page} of {booking_list.page_count} loaded")
-        if booking_list.total_items > len(bookings):
-            logger.warning(
-                f"Total bookings: {booking_list.total_items} is greater than the number of bookings returned: {len(bookings)}"
-            )
-        logger.info(f"Total bookings: {len(bookings)}")
-        return bookings
+            # make a function that goes through the pages and gets all the bookings
+            bookings = booking_list.bookings
+            for page in range(1, booking_list.page_count):
+                response = requests.get(
+                    f"https://login.smoobu.com/api/reservations?page={page}",
+                    headers=self.headers,
+                )
+                data = response.json()
+                booking_list = BookingList.from_json(data)
+                bookings.extend(booking_list.bookings)
+                logger.debug(f"Page {page} of {booking_list.page_count} loaded")
+            if booking_list.total_items > len(bookings):
+                logger.warning(
+                    f"Total bookings: {booking_list.total_items} is greater than the number of bookings returned: {len(bookings)}"
+                )
+            logger.info(f"Total bookings: {len(bookings)}")
+            return bookings
+        elif response.status_code != 200:
+            logger.error(f"Error: {response.status_code}")
 
 
 if __name__ == "__main__":
