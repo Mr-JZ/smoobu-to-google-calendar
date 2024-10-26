@@ -1,0 +1,4 @@
+#!/bin/bash 
+export SMOOBU_API=<your smoobu api>
+# Time zone in the format Europe/Berlin
+export TIME_ZONE=<your time zone>
