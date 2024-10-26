@@ -4,10 +4,9 @@ services:
     container_name: smoobu-calender-sync
     volumes:
       - ./calendar-secrets.json:/app/secrets/calendar-secrets.json
+      - ./token.pickle:/app/secrets/token.pickle
+      - ./.setenv:/app/secrets/.setenv
       - smoobu-calender-data:/app/data
-    environment:
-      - SMOOBU_API=${SMOOBU_API}
-      - TIME_ZONE=${TIME_ZONE}
     restart: unless-stopped  # Restart policy
 
 volumes:
