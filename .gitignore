@@ -163,3 +163,4 @@ cython_debug/
 data.db
 token.pickle
 calendar-secrets.json
+.setenv
