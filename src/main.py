@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List
 from smoobu import Smoobu, Booking
 from google_calendar import (
@@ -42,8 +43,8 @@ def create_and_insert_google_calendar_events(bookings: List[Booking], db: Db):
     :return: None
     """
     google_calendar = GoogleCalendar()
-    event = create_calendar_event(booking)
     for booking in bookings:
+        event = create_calendar_event(booking)
         event_id = google_calendar.create_google_calendar_event(event)
         if event_id is None:
             return
