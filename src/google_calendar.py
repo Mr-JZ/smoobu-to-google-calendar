@@ -105,28 +105,28 @@ class GoogleCalendarEvent:
 class GoogleCalendar:
     def __init__(self):
         SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        if os.path.exists("data/token.pickle"):
-            with open("data/token.pickle", "rb") as token:
+        token_path = "secrets/token.pickle"
+        if os.path.exists(token_path):
+            with open(token_path, "rb") as token:
                 self.creds = pickle.load(token)
         else:
-            self.creds = None
+            logger.error(f"Token file {token_path} not found.")
+            raise Exception("Token file not found.")
+
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
+                with open(token_path, "wb") as token:
+                    pickle.dump(self.creds, token)
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    "secrets/calendar-secrets.json", SCOPES
-                )
-                self.creds = flow.run_local_server(port=0)
-            with open("token.pickle", "wb") as token:
-                pickle.dump(self.creds, token)
-        self.flow = InstalledAppFlow.from_client_secrets_file(
-            "secrets/calendar-secrets.json", SCOPES
-        )
+                logger.error("Credentials are invalid and cannot be refreshed")
+                raise Exception("Credentials are invalid and cannot be refreshed")
+
         try:
             self.service = build("calendar", "v3", credentials=self.creds)
         except HttpError as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
+            raise error
 
     def create_google_calendar_event(self, event: GoogleCalendarEvent) -> str:
         """
