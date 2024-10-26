@@ -20,6 +20,7 @@
                pkgs.python310Packages.venvShellHook
                pkgs.ffmpeg
                pkgs.black
+               pkgs.sqlite
                # this is how we add native dependencies to the shell
                # e.g. grpc libstdc++.so.6
                stdenv.cc.cc.lib
@@ -37,6 +38,7 @@
             echo "LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib" >> .venv/bin/activate
             export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib 
             unset SOURCE_DATE_EPOCH
+            export DBEE_CONNECTIONS='[{"name": "smoobu-to-google-calendar-db", "url": "~/github/smoobu-to-google-calendar/data.db", "type": "sqlite"}]'
           '';
        };
     });
